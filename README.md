@@ -8,9 +8,7 @@ The goal is to identify potentially risky wording, improve consistency, and help
 
 🚀 Live Demo
 
-Website: https://brandguardai.xyz
-
-Alternative link: https://thehussainx.github.io/Brandguard-AI/
+Website: https://thehussainx.github.io/Brandguard-AI/
 
 ✨ Features
 
