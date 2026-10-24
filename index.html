@@ -38,6 +38,8 @@ label{display:block;font-size:13px;font-weight:700;margin:16px 0 7px}textarea,se
   <div><label for="restrictedWords">Restricted words or phrases</label><input id="restrictedWords" maxlength="300" placeholder="e.g., miracle, guaranteed cure, instant results"/></div>
  </div>
  <label for="requiredPhrase">Required phrase (optional)</label><input id="requiredPhrase" maxlength="120" placeholder="e.g., Terms and conditions apply"/>
+ <label for="termMappings">Preferred terminology (optional)</label><textarea id="termMappings" style="height:86px" placeholder="One mapping per line: old term = preferred term&#10;cheap = affordable&#10;customer = customer (if this is your approved term)"></textarea>
+ <p class="hint">Enter one mapping per line using <b>term to flag = preferred term</b>. Example: cheap = affordable. These exact text rules are configurable and run locally.</p>
  <p class="hint">Restricted phrases are separated by commas. These are simple text checks, not a complete brand policy engine.</p>
 </section>
 <div class="layout">
@@ -52,15 +54,16 @@ label{display:block;font-size:13px;font-weight:700;margin:16px 0 7px}textarea,se
  </div>
  <p class="hint">The warranty setting represents the approved demo-brand rule. Change it to test different scenarios.</p>
  <label for="brandName">Demo brand name (optional)</label><input id="brandName" maxlength="60" placeholder="e.g., Northstar"/>
- <div class="actions"><button class="primary" id="reviewBtn" onclick="reviewContent()">Run brand checks →</button><button class="secondary" onclick="loadExample()">Load example</button><button class="outline" onclick="clearForm()">Clear</button></div>
+ <div class="actions"><button class="primary" id="reviewBtn" onclick="reviewContent()">Run brand checks →</button><button class="secondary" id="aiReviewBtn" onclick="runAIReview()">✨ AI review</button><button class="secondary" onclick="loadExample()">Load example</button><button class="outline" onclick="clearForm()">Clear</button></div>
  <details class="rulebox"><summary>What does this prototype check?</summary><p>It checks warranty-period mismatches, absolute or medical-style promises, unsupported superlatives, competitor comparisons, urgency language, and missing contact details for selected customer-support phrases. These are rule-based signals, not legal conclusions or an AI model.</p></details>
 </section>
 <section class="panel">
  <div class="panel-head"><h2>Review report</h2><span class="pill">STEP 2</span></div>
  <p class="sub">Potential risks and suggested edits appear here. Always verify them against real, approved brand guidelines.</p>
  <div id="results" aria-live="polite"><div class="empty"><strong>Ready when you are</strong>Enter some content and run brand checks to generate a review.</div></div>
+  <div id="aiResults" style="margin-top:14px" aria-live="polite"><div class="empty"><strong>AI review not run yet</strong>Use “AI review” after the secure backend is configured.</div></div>
  <div class="results-actions" id="reportActions" hidden><button class="secondary" onclick="downloadReport()">Download report (.txt)</button><button class="outline" onclick="copyReport()">Copy report text</button><button class="outline" onclick="makeSaferDraft()">Build safer draft</button></div><div id="rewriteArea" hidden style="margin-top:14px"><label for="saferDraft">Safer draft suggestion (review before use)</label><textarea id="saferDraft" style="height:130px"></textarea><p class="hint">This is a rule-based text suggestion, not AI-generated legal or compliance advice.</p><button class="secondary" onclick="useSaferDraft()">Use this draft in editor</button></div>
- <div class="disclaimer">Important: This demo uses local JavaScript rules. It does not call an AI service, validate facts externally, or guarantee compliance. Human review is required before publishing.</div>
+ <div class="disclaimer">Important: Rule-based checks run locally. The optional Gemini AI review sends the content and configured brand guidelines to your secure backend for analysis. AI can make mistakes, does not verify facts externally, and cannot guarantee compliance. Human approval is required before publishing.</div>
 </section>
 </div>
 <section class="panel" style="margin-top:20px">
@@ -104,6 +107,7 @@ function reviewContent() {
  const brandName = document.getElementById("brandName").value.trim() || "Not specified";
  const restrictedWords = document.getElementById("restrictedWords").value.split(",").map(s=>s.trim()).filter(Boolean);
  const requiredPhrase = document.getElementById("requiredPhrase").value.trim();
+ const termMappings = document.getElementById("termMappings").value.split("\n").map(line=>line.trim()).filter(line=>line.includes("=")).map(line=>{const parts=line.split("=");return {from:parts.shift().trim(),to:parts.join("=").trim()};}).filter(rule=>rule.from && rule.to);
  const brandTone = document.getElementById("brandTone").value;
  if (!content) {
   results.innerHTML = '<div class="summary warn"><div class="big">!</div><div><b>Content required</b><p>Enter content before running the checks.</p></div></div>';
@@ -145,6 +149,13 @@ function reviewContent() {
  if (requiredPhrase && !content.toLowerCase().includes(requiredPhrase.toLowerCase())) {
   add("low","Required phrase missing",`The configured required phrase “${requiredPhrase}” was not found in the content.`,`If this phrase is mandatory for this content type, add: “${requiredPhrase}”.`);
  }
+ termMappings.forEach(rule=>{
+  const escaped = rule.from.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  const matcher = new RegExp(`(?<![\\p{L}\\p{N}_])${escaped}(?![\\p{L}\\p{N}_])`,"iu");
+  if (matcher.test(content)) {
+   add("medium","Preferred terminology mismatch",`The configured term “${rule.from}” appears in the copy. The brand's preferred wording is “${rule.to}”.`,`Consider replacing “${rule.from}” with “${rule.to}” where the meaning remains accurate.`);
+  }
+ });
  completedChecks++;
  totalIssues += issues.length;
  latestOriginalContent = content;
@@ -156,7 +167,7 @@ function reviewContent() {
  const medium = issues.filter(i=>i.severity==="medium").length;
  const low = issues.filter(i=>i.severity==="low").length;
  const date = new Date().toLocaleString();
- let report = `BRANDGUARD AI — CONTENT REVIEW REPORT\nDate: ${date}\nContent type: ${contentType}\nBrand: ${brandName}\nApproved demo warranty: ${approvedDays} days\nPreferred tone: ${brandTone}\nRestricted phrases: ${restrictedWords.join(", ") || "None configured"}\nRequired phrase: ${requiredPhrase || "None configured"}\nPotential issues: ${issues.length} (High: ${high}, Medium: ${medium}, Low: ${low})\n\nCONTENT REVIEWED:\n${content}\n\nFINDINGS:\n`;
+ let report = `BRANDGUARD AI — CONTENT REVIEW REPORT\nDate: ${date}\nContent type: ${contentType}\nBrand: ${brandName}\nApproved demo warranty: ${approvedDays} days\nPreferred tone: ${brandTone}\nRestricted phrases: ${restrictedWords.join(", ") || "None configured"}\nRequired phrase: ${requiredPhrase || "None configured"}\nPreferred terminology rules: ${termMappings.map(r=>r.from+" = "+r.to).join("; ") || "None configured"}\nPotential issues: ${issues.length} (High: ${high}, Medium: ${medium}, Low: ${low})\n\nCONTENT REVIEWED:\n${content}\n\nFINDINGS:\n`;
  if (!issues.length) report += "No matching issues found by the current demo rules. This does not guarantee compliance.\n";
  issues.forEach((it,i)=> report += `\n${i+1}. [${it.severity.toUpperCase()}] ${it.title}\nFinding: ${it.detail}\nSuggested correction: ${it.suggestion}\n`);
  report += "\nLIMITATION: Rule-based prototype only. Verify facts and suggestions against approved brand guidelines. Human approval required before publishing.";
@@ -218,6 +229,7 @@ function clearHistory() {
 function makeSaferDraft() {
  let draft = latestOriginalContent;
  const replacements = [
+  ...document.getElementById("termMappings").value.split("\n").map(line=>line.trim()).filter(line=>line.includes("=")).map(line=>{const parts=line.split("=");const from=parts.shift().trim();const to=parts.join("=").trim();const escaped=from.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");return [new RegExp(`(?<![\\p{L}\\p{N}_])${escaped}(?![\\p{L}\\p{N}_])`,"ig"),to];}).filter(pair=>pair[0].source && pair[1]),
   [/\b100\s*%\s*guaranteed to cure every problem\b/ig, "designed to help address common needs"],
   [/\b100\s*%\s*guaranteed\b/ig, "designed to deliver a helpful experience"],
   [/\bguaranteed to cure\b/ig, "may help with"],
@@ -237,7 +249,7 @@ function makeSaferDraft() {
  ];
  replacements.forEach(([pattern,replacement]) => draft = draft.replace(pattern,replacement));
  const approvedDays = document.getElementById("approvedWarranty").value;
- draft = draft.replace(/\b(30|60|90)\s*[- ]?day(?:s)?\s+warranty\b/ig, `${approvedDays}-day warranty`);
+ draft = draft.replace(/\b(30|60|90)\s*[- ]?days?\s+(?:of\s+)?warranty\b/ig, `${approvedDays}-day warranty`);
  document.getElementById("saferDraft").value = draft;
  document.getElementById("rewriteArea").hidden = false;
 }
@@ -264,6 +276,93 @@ async function copyReport() {
   alert("Copy was blocked by the browser. Use Download report instead.");
  }
 }
+
+// Configure this after deploying the secure API backend on Vercel.
+// This URL is public configuration, NOT your Gemini API key.
+const AI_API_URL = "https://YOUR-VERCEL-PROJECT.vercel.app/api/review";
+
+async function runAIReview() {
+  const content = document.getElementById("content").value.trim();
+  const target = document.getElementById("aiResults");
+  const button = document.getElementById("aiReviewBtn");
+
+  if (!content) {
+    target.innerHTML = '<div class="summary warn"><div class="big">!</div><div><b>Content required</b><p>Enter content before running the AI review.</p></div></div>';
+    return;
+  }
+  if (!AI_API_URL || AI_API_URL.includes("YOUR-VERCEL-PROJECT")) {
+    target.innerHTML = '<div class="summary warn"><div class="big">!</div><div><b>AI backend not connected yet</b><p>Deploy the included api/review.js backend to Vercel, then replace YOUR-VERCEL-PROJECT in the AI_API_URL setting near the end of this file with your Vercel project hostname.</p></div></div>';
+    return;
+  }
+
+  const payload = {
+    content,
+    contentType: document.getElementById("type").value,
+    brandName: document.getElementById("brandName").value.trim() || "Not specified",
+    brandTone: document.getElementById("brandTone").value,
+    approvedWarranty: document.getElementById("approvedWarranty").value,
+    restrictedWords: document.getElementById("restrictedWords").value.split(",").map(s => s.trim()).filter(Boolean),
+    requiredPhrase: document.getElementById("requiredPhrase").value.trim(),
+    termMappings: document.getElementById("termMappings").value
+      .split("\n").map(s => s.trim()).filter(s => s.includes("="))
+  };
+
+  button.disabled = true;
+  button.textContent = "AI reviewing…";
+  target.innerHTML = '<div class="empty"><strong>Gemini is reviewing your content…</strong>This may take a few seconds.</div>';
+
+  try {
+    const response = await fetch(AI_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || `AI service returned status ${response.status}.`);
+    }
+    const answer = String(data.review || "").trim();
+    if (!answer) throw new Error("The AI service returned an empty review.");
+
+    const heading = document.createElement("div");
+    heading.className = "results-top";
+    const title = document.createElement("b");
+    title.textContent = "Gemini AI review";
+    const pill = document.createElement("span");
+    pill.className = "pill";
+    pill.textContent = "AI-generated · verify before use";
+    heading.append(title, pill);
+
+    const body = document.createElement("pre");
+    body.style.cssText = "white-space:pre-wrap;overflow-wrap:anywhere;background:#f7f9fc;border:1px solid var(--line);padding:15px;border-radius:10px;font:13px/1.65 Inter,Arial,sans-serif;color:var(--ink)";
+    body.textContent = answer;
+
+    const note = document.createElement("p");
+    note.className = "hint";
+    note.textContent = "AI can be wrong. Compare this review with the rule-based findings and approved brand policy before publishing.";
+
+    target.replaceChildren(heading, body, note);
+  } catch (error) {
+    target.innerHTML = "";
+    const box = document.createElement("div");
+    box.className = "summary warn";
+    const symbol = document.createElement("div");
+    symbol.className = "big";
+    symbol.textContent = "!";
+    const details = document.createElement("div");
+    const title = document.createElement("b");
+    title.textContent = "AI review could not complete";
+    const message = document.createElement("p");
+    message.textContent = error.message || "Check the backend deployment and try again.";
+    details.append(title, message);
+    box.append(symbol, details);
+    target.append(box);
+  } finally {
+    button.disabled = false;
+    button.textContent = "✨ AI review";
+  }
+}
+
 window.addEventListener("DOMContentLoaded", renderHistory);
 </script>
 </body>
