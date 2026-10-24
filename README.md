@@ -1,46 +1,82 @@
-BrandGuard AI
+🛡️ BrandGuard AI
 
-A Rule-Based Marketing Content Compliance Checker
+AI-Powered Brand Compliance & Marketing Content Review
 
-Overview
+BrandGuard AI helps businesses review marketing content against their brand guidelines using AI-powered analysis and rule-based checks.
 
-BrandGuard AI is a web-based prototype that helps users review marketing content for potentially risky claims and brand guideline violations.
+The goal is to identify potentially risky wording, improve consistency, and help teams create clearer, more brand-aligned content.
 
-Features
+🚀 Live Demo
 
-- Detects selected risky marketing phrases and unsupported-sounding claims.
-- Checks warranty wording against the configured approved warranty period.
-- Supports custom restricted phrases and required brand phrases.
-- Assigns issue severity levels.
-- Provides suggested wording corrections and a safer-draft helper.
-- Saves recent reviews locally in the browser.
-- Allows users to copy and download review reports.
-- Responsive interface for desktop and mobile screens.
+Website: https://brandguardai.xyz
 
-How to Use
+Alternative link: https://thehussainx.github.io/Brandguard-AI/
 
-1. Open the live website.
-2. Enter your marketing content and configure the brand guidelines.
-3. Run the brand checks.
-4. Review flagged issues and suggested corrections.
-5. Copy or download the report if needed.
+✨ Features
 
-Technology
+- AI-Powered Review: Uses Google Gemini to analyze marketing content and provide actionable feedback.
+- Rule-Based Checks: Checks content against configured brand rules and restrictions.
+- Risk Identification: Highlights potential wording and brand compliance concerns.
+- Brand Guideline Alignment: Reviews content against user-provided brand settings.
+- Suggested Improvements: Provides recommendations and an optional revised draft.
+- Custom Brand Settings: Supports brand name, content type, preferred tone, restricted phrases, required phrases, and terminology rules.
+- Secure Backend Integration: Calls the Gemini API through a serverless backend instead of exposing the API key in frontend code.
 
-- HTML
-- CSS
-- JavaScript
+⚙️ How It Works
 
-Current Limitations
+1. The user enters marketing content and configures brand guidelines.
+2. The frontend performs its configured rule-based checks.
+3. The user requests an AI review.
+4. The backend sends the content and relevant brand settings to the Google Gemini API.
+5. The AI returns an assessment, potential risks, guideline-alignment feedback, and suggested improvements.
+6. The results are displayed on the website.
 
-This is a rule-based prototype, not a fully AI-powered system. Its checks rely on predefined phrases and simple text matching. It may miss issues or flag content incorrectly. Suggestions should be reviewed by a human before use.
+🧰 Tech Stack
 
-Review history is stored in the browser on the current device and is not a cloud-synced database.
+- Frontend: HTML, CSS, JavaScript
+- AI: Google Gemini API
+- Backend: Node.js serverless function
+- Deployment: GitHub Pages and Vercel
+- Version Control: Git and GitHub
 
-Live Demo
+🔐 Environment Configuration
 
-https://thehussainx.github.io/Brandguard-AI/
+The backend requires the following environment variables in Vercel:
 
-Project Status
+Variable| Purpose
+"GEMINI_API_KEY"| Authenticates requests to the Gemini API
+"GEMINI_MODEL"| Specifies the Gemini model to use
 
-Prototype — further testing and improvements are planned.
+Keep API keys private. Never commit secrets or ".env" files containing credentials to GitHub.
+
+🛠️ Local Setup
+
+1. Clone or download this repository.
+2. Open "index.html" in a browser to inspect the frontend.
+3. Configure the backend in a Vercel project with the required environment variables.
+4. Deploy the backend and configure the frontend to use the correct API endpoint.
+
+The AI review feature requires the backend to be deployed and configured correctly.
+
+⚠️ Limitations
+
+- AI-generated assessments may be inaccurate or incomplete.
+- A flagged phrase does not automatically mean a policy violation has occurred.
+- Results depend on the supplied content, configured brand rules, and AI output.
+- Users should verify important findings before making business or compliance decisions.
+
+BrandGuard AI is an assistance tool and does not guarantee brand compliance or provide legal advice.
+
+🎯 Project Goal
+
+The project explores how AI and rule-based validation can work together to help identify potential brand consistency issues and improve marketing content review workflows.
+
+👨‍💻 Author
+
+Muhammad Hussain
+
+Built as a practical software project exploring AI integration, backend development, and brand compliance workflows.
+
+---
+
+BrandGuard AI — Review smarter. Communicate consistently.
