@@ -279,8 +279,7 @@ async function copyReport() {
 
 // Configure this after deploying the secure API backend on Vercel.
 // This URL is public configuration, NOT your Gemini API key.
-const AI_API_URL = "https://YOUR-VERCEL-PROJECT.vercel.app/api/review";
-
+const AI_API_URL = "https://brandguard-ai-pi.vercel.app/api/review";
 async function runAIReview() {
   const content = document.getElementById("content").value.trim();
   const target = document.getElementById("aiResults");
