@@ -178,7 +178,7 @@ Return ONLY valid JSON using this structure:
   temperature: 0.2,
   maxOutputTokens: 1800,
   responseMimeType: "application/json"
-})
+}
       }
     );
 
