@@ -48,6 +48,13 @@ label{display:block;font-size:13px;font-weight:700;margin:16px 0 7px}textarea,se
  <p class="sub">Paste a caption, advertisement, product description, or campaign email.</p>
  <label for="content">Content to review</label>
  <textarea id="content" placeholder="Example: Our product comes with a 90-day warranty. Order today!"></textarea>
+ <div style="margin-top:18px;padding:14px;border:1px solid var(--line);border-radius:10px">
+  <label for="adImage"><strong>Advertisement image (optional)</strong></label>
+  <input id="adImage" type="file" accept="image/png,image/jpeg,image/webp"/>
+  <p class="hint">Upload a PNG, JPG, or WebP advertisement image for AI brand-compliance analysis.</p>
+  <button class="secondary" id="imageReviewBtn" type="button" onclick="runImageReview()">🖼️ Analyze advertisement image</button>
+  <div id="imageResults" aria-live="polite" style="margin-top:12px"></div>
+ </div>
  <div class="two">
   <div><label for="type">Content type</label><select id="type"><option>Social media caption</option><option>Advertisement</option><option>Product description</option><option>Email campaign</option></select></div>
   <div><label for="approvedWarranty">Approved warranty</label><select id="approvedWarranty"><option value="30">30 days</option><option value="60">60 days</option><option value="90">90 days</option></select></div>
@@ -463,7 +470,138 @@ target.innerHTML = '<div class="empty"><strong>Gemini is reviewing your content�
     button.textContent = "✨ AI review";
   }
 }
+async function runImageReview() {
+  const fileInput = document.getElementById("adImage");
+  const target = document.getElementById("imageResults");
+  const button = document.getElementById("imageReviewBtn");
+  const file = fileInput.files[0];
 
+  if (!file) {
+    target.textContent = "Please select an advertisement image first.";
+    return;
+  }
+
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+  if (!allowedTypes.includes(file.type)) {
+    target.textContent = "Please upload a PNG, JPG, or WebP image.";
+    return;
+  }
+
+  if (file.size > 3 * 1024 * 1024) {
+    target.textContent = "Image must be 5 MB or smaller.";
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Analyzing image...";
+  target.textContent = "Preparing image for AI review...";
+
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const result = String(reader.result);
+        resolve(result.split(",")[1]);
+      };
+
+      reader.onerror = () => reject(new Error("Could not read the image."));
+      reader.readAsDataURL(file);
+    });
+
+    const payload = {
+      imageData: base64,
+      mimeType: file.type,
+      contentType: "Advertisement",
+      brandName: document.getElementById("brandName").value.trim() || "Not specified",
+      brandTone: document.getElementById("brandTone").value,
+      approvedWarranty: document.getElementById("approvedWarranty").value,
+      restrictedWords: document.getElementById("restrictedWords").value
+        .split(",").map(s => s.trim()).filter(Boolean),
+      requiredPhrase: document.getElementById("requiredPhrase").value.trim(),
+      termMappings: document.getElementById("termMappings").value
+        .split("\n").map(s => s.trim()).filter(s => s.includes("="))
+    };
+
+    target.textContent = "Sending image for analysis...";
+
+    const response = await fetch(AI_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.error || `AI service returned status ${response.status}.`);
+    }
+
+    const report = data.review;
+
+    if (
+      !report ||
+      typeof report.overallAssessment !== "string" ||
+      !Array.isArray(report.findings)
+    ) {
+      throw new Error("The AI service returned an invalid image report.");
+    }
+
+    target.replaceChildren();
+
+    const heading = document.createElement("h3");
+    heading.textContent = "Advertisement Image Report";
+    target.appendChild(heading);
+
+    const assessment = document.createElement("p");
+    assessment.textContent = report.overallAssessment;
+    target.appendChild(assessment);
+
+    report.findings.forEach((finding, index) => {
+      const card = document.createElement("div");
+      card.style.cssText =
+        "padding:12px;margin:10px 0;border:1px solid var(--line);border-radius:8px;overflow-wrap:anywhere;";
+
+      const title = document.createElement("h4");
+      title.textContent = `Finding ${index + 1} · ${finding.severity || "Unspecified"} severity`;
+      card.appendChild(title);
+
+      [
+        ["Flagged text", finding.flaggedText],
+        ["Relevant rule", finding.rule],
+        ["Explanation", finding.explanation],
+        ["Suggested correction", finding.suggestedCorrection]
+      ].forEach(([label, value]) => {
+        const p = document.createElement("p");
+        const strong = document.createElement("strong");
+        strong.textContent = label + ": ";
+        p.append(strong, document.createTextNode(value || "Not provided"));
+        card.appendChild(p);
+      });
+
+      target.appendChild(card);
+    });
+
+    if (report.findings.length === 0) {
+      const empty = document.createElement("p");
+      empty.textContent = "No clear issues identified. This does not guarantee compliance.";
+      target.appendChild(empty);
+    }
+
+    const note = document.createElement("p");
+    note.className = "hint";
+    note.textContent =
+      "AI-generated analysis. Verify the image findings against approved brand guidelines before publishing.";
+    target.appendChild(note);
+
+  } catch (error) {
+    target.textContent = "Image review failed: " + error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = "🖼️ Analyze advertisement image";
+  }
+}
 window.addEventListener("DOMContentLoaded", renderHistory);
 </script>
 </body>
