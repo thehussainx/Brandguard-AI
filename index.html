@@ -41,6 +41,13 @@ label{display:block;font-size:13px;font-weight:700;margin:16px 0 7px}textarea,se
  <label for="termMappings">Preferred terminology (optional)</label><textarea id="termMappings" style="height:86px" placeholder="One mapping per line: old term = preferred term&#10;cheap = affordable&#10;customer = customer (if this is your approved term)"></textarea>
  <p class="hint">Enter one mapping per line using <b>term to flag = preferred term</b>. Example: cheap = affordable. These exact text rules are configurable and run locally.</p>
  <p class="hint">Restricted phrases are separated by commas. These are simple text checks, not a complete brand policy engine.</p>
+ <div style="margin-top:18px;padding:14px;border:1px solid var(--line);border-radius:10px">
+  <label for="guidelinesPdf"><strong>Upload brand guidelines (PDF)</strong></label>
+  <input id="guidelinesPdf" type="file" accept="application/pdf,.pdf"/>
+  <p class="hint">Upload a PDF to import your brand guidelines.</p>
+  <button class="secondary" id="importGuidelinesBtn" type="button" onclick="importGuidelinesPDF()">📄 Import guidelines</button>
+  <p id="guidelinesPdfStatus" class="hint" aria-live="polite"></p>
+ </div>
 </section>
 <div class="layout">
 <section class="panel">
@@ -287,6 +294,60 @@ async function copyReport() {
 // Configure this after deploying the secure API backend on Vercel.
 // This URL is public configuration, NOT your Gemini API key.
 const AI_API_URL = "https://brandguard-ai-pi.vercel.app/api/review";
+async function importGuidelinesPDF() {
+  const fileInput = document.getElementById("guidelinesPdf");
+  const status = document.getElementById("guidelinesPdfStatus");
+  const button = document.getElementById("importGuidelinesBtn");
+  const file = fileInput.files[0];
+
+  if (!file) {
+    status.textContent = "Please select a PDF file first.";
+    return;
+  }
+
+  if (file.type !== "application/pdf") {
+    status.textContent = "Please upload a valid PDF file.";
+    return;
+  }
+
+  try {
+    button.disabled = true;
+    status.textContent = "Reading PDF...";
+
+    const pdfjs = window["pdfjsLib"];
+    pdfjs.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    const data = new Uint8Array(await file.arrayBuffer());
+    const pdf = await pdfjs.getDocument({ data }).promise;
+    let extractedText = "";
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const content = await page.getTextContent();
+      extractedText += content.items.map(item => item.str).join(" ") + "\n";
+    }
+
+    if (!extractedText.trim()) {
+      status.textContent =
+        "No selectable text found. This PDF may be scanned.";
+      return;
+    }
+
+    const box = document.getElementById("termMappings");
+    box.value = (box.value.trim()
+      ? box.value.trim() + "\n"
+      : "") + extractedText.trim();
+
+    status.textContent =
+      "PDF text imported. Please check the text box before reviewing.";
+  } catch (error) {
+    console.error(error);
+    status.textContent = "Could not read this PDF. Please try another file.";
+  } finally {
+    button.disabled = false;
+  }
+}
 async function runAIReview() {
   const content = document.getElementById("content").value.trim();
   const target = document.getElementById("aiResults");
@@ -604,5 +665,6 @@ async function runImageReview() {
 }
 window.addEventListener("DOMContentLoaded", renderHistory);
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </body>
 </html>
