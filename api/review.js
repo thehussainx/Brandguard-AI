@@ -29,9 +29,31 @@ module.exports = async function handler(req, res) {
 
   const body = req.body || {};
   const content = typeof body.content === "string" ? body.content.trim() : "";
-  if (!content) return res.status(400).json({ error: "Content is required." });
-  if (content.length > 12000) {
-    return res.status(413).json({ error: "Please keep the content under 12,000 characters." });
+  const imageData = typeof body.imageData === "string" ? body.imageData : "";
+  const mimeType = typeof body.mimeType === "string" ? body.mimeType : "";
+
+  const isImageReview = imageData.length > 0;
+
+  if (isImageReview) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(mimeType)) {
+      return res.status(400).json({ error: "Unsupported image type." });
+    }
+
+    if (imageData.length > 4000000) {
+      return res.status(413).json({ error: "Please use a smaller image." });
+    }
+
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(imageData)) {
+      return res.status(400).json({ error: "Invalid image data." });
+    }
+  } else {
+    if (!content) {
+      return res.status(400).json({ error: "Content or an advertisement image is required." });
+    }
+
+    if (content.length > 12000) {
+      return res.status(413).json({ error: "Please keep the content under 12,000 characters." });
+    }
   }
 
   const safeList = (value, maxItems, maxLength) =>
