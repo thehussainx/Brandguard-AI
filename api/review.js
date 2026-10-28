@@ -168,5 +168,10 @@ Requirements:
     }
 
     return res.status(200).json({ review });
+  } catch (error) {
+    console.error("AI review failed:", error);
+    return res.status(500).json({
+      error: "AI review failed. Please try again."
+    });
   }
 };
