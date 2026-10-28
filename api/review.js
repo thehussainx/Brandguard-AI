@@ -68,7 +68,7 @@ module.exports = async function handler(req, res) {
   const termMappings = safeList(body.termMappings, 30, 200);
   const requiredPhrase = String(body.requiredPhrase || "").slice(0, 150);
 
-  const textprompt = `
+  const textPrompt = `
 You are BrandGuard AI, an assistant that reviews marketing copy against user-provided brand guidelines.
 
 SECURITY AND ACCURACY
