@@ -179,8 +179,9 @@ Return ONLY valid JSON using this structure:
   maxOutputTokens: 1800,
   responseMimeType: "application/json"
 }
-      }
-    );
+})
+}
+);
 
     const result = await upstream.json().catch(() => ({}));
     if (!upstream.ok) {
