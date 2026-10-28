@@ -174,8 +174,11 @@ Return ONLY valid JSON using this structure:
       ]
     : [{ text: prompt }]
 }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 1800 }
-        })
+         generationConfig: {
+  temperature: 0.2,
+  maxOutputTokens: 1800,
+  responseMimeType: "application/json"
+})
       }
     );
 
